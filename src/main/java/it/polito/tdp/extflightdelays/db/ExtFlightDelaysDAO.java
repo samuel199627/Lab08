@@ -7,9 +7,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import it.polito.tdp.extflightdelays.model.Airline;
 import it.polito.tdp.extflightdelays.model.Airport;
+import it.polito.tdp.extflightdelays.model.CoppiaAereoporti;
 import it.polito.tdp.extflightdelays.model.Flight;
 
 public class ExtFlightDelaysDAO {
@@ -91,4 +93,50 @@ public class ExtFlightDelaysDAO {
 			throw new RuntimeException("Error Connection Database");
 		}
 	}
+	
+	/*
+		select origin_airport_ID, DESTINATION_airport_id, Count(*) as tot_voli, sum(`DISTANCE`)
+		from flights
+		group by origin_airport_ID, DESTINATION_airport_id
+		order by origin_airport_ID, DESTINATION_airport_id
+	 */
+	public List<CoppiaAereoporti> loadAllConnectionsAirports(Map<Integer,Airport> aereoporti) {
+		String sql = "select origin_airport_ID, DESTINATION_airport_id, Count(*) as tot_voli, sum(distance) as distanza_tot" + 
+				"		from flights " + 
+				"		group by origin_airport_ID, DESTINATION_airport_id " + 
+				"		order by origin_airport_ID, DESTINATION_airport_id";
+		
+		//List<Flight> result = new LinkedList<Flight>();
+		List<CoppiaAereoporti> coppie=new ArrayList<>();
+
+		try {
+			Connection conn = ConnectDB.getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			ResultSet rs = st.executeQuery();
+
+			while (rs.next()) {
+				
+				CoppiaAereoporti coppia=new CoppiaAereoporti(aereoporti.get(rs.getInt("ORIGIN_AIRPORT_ID")),aereoporti.get(rs.getInt("DESTINATION_AIRPORT_ID")),rs.getInt("tot_voli"),rs.getInt("distanza_tot"));
+				/*
+				Flight flight = new Flight(rs.getInt("ID"), rs.getInt("AIRLINE_ID"), rs.getInt("FLIGHT_NUMBER"),
+						rs.getString("TAIL_NUMBER"), rs.getInt("ORIGIN_AIRPORT_ID"),
+						rs.getInt("DESTINATION_AIRPORT_ID"),
+						rs.getTimestamp("SCHEDULED_DEPARTURE_DATE").toLocalDateTime(), rs.getDouble("DEPARTURE_DELAY"),
+						rs.getDouble("ELAPSED_TIME"), rs.getInt("DISTANCE"),
+						rs.getTimestamp("ARRIVAL_DATE").toLocalDateTime(), rs.getDouble("ARRIVAL_DELAY"));
+				result.add(flight);
+				*/
+				coppie.add(coppia);
+			}
+
+			conn.close();
+			return coppie;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Errore connessione al database");
+			throw new RuntimeException("Error Connection Database");
+		}
+	}
+	
 }
